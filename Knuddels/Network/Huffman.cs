@@ -76,6 +76,7 @@ namespace Knuddels.Network
 
 
                 _helper.Append("1");
+
                 if (_tree.ContainsKey(_helper.ToString()))
                     throw new Exception("Error constructing tree: " + value);
 
@@ -83,7 +84,7 @@ namespace Knuddels.Network
 
                 #endregion
             }
-
+        
             #endregion
         }
         
@@ -134,9 +135,7 @@ namespace Knuddels.Network
         {
             if (pString == null)
                 pString = string.Empty;
-
-            var sb = new StringBuilder();
-
+            
             var bitBuffer = new StringBuilder();
             _helper.Clear();
             for (var i = 0; i < pString.Length; i++)
@@ -155,8 +154,8 @@ namespace Knuddels.Network
                     }
                 }
             }
-
             _helper.Clear();
+
             var bits = new string(bitBuffer.ToString().Reverse().ToArray());
             byte[] buffer = new byte[bits.Length / 8 + 1];
             for (var i = 0; i < buffer.Length; i++)
@@ -166,8 +165,7 @@ namespace Knuddels.Network
                                                     bits.Substring(
                                                         bitCount - 8 < 0 ? 0 : bitCount - 8,
                                                         bitCount - 8 < 0 ? bitCount : 8
-                                                    )
-                                                    , 2);
+                                                    ), 2);
             }
             return buffer;
         }
