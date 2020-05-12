@@ -154,7 +154,6 @@ namespace Knuddels.Network
                     }
                 }
             }
-            _helper.Clear();
 
             var bits = new string(bitBuffer.ToString().Reverse().ToArray());
             byte[] buffer = new byte[bits.Length / 8 + 1];
@@ -165,7 +164,8 @@ namespace Knuddels.Network
                                                     bits.Substring(
                                                         bitCount - 8 < 0 ? 0 : bitCount - 8,
                                                         bitCount - 8 < 0 ? bitCount : 8
-                                                    ), 2);
+                                                    )
+                                                    , 2);
             }
             return buffer;
         }
