@@ -9,6 +9,10 @@ namespace Knuddels.Network
     /// <summary>
     /// Knuddels Huffman Komprimierung
     /// wird benötigt um Packete an Knuddels zu senden und zu lesen.
+    /// 
+    /// Issues:
+    ///     Bei manchen Packeten stimmt die länge der Komprimierten bytes nicht mit dem Applet überein,
+    ///     ich habe bisher keine Ahnung woran das liegt, aber dafür ist das alles selbst geschrieben und nicht einfach 1:1 von KrT (KoRn) kopiert und ohne Quellenangabe veröffentlicht.
     /// </summary>
     public class Huffman
     {
@@ -25,14 +29,15 @@ namespace Knuddels.Network
         /// wird für die Komprimierung gebraucht und vor den Zeichen 
         /// als Opcode in den BitStream geschrieben.
         /// </summary>
-        private string _16BitCharIndicator;
+        private readonly string _16BitCharIndicator;
+        
         /// <summary>
         /// Wird als Hilfs-Buffer verwendet:
         ///     Konstrktor: Binary Werte berechnen
         ///     Compress: Zeichen, Zecuhenketten im Tree finden
         ///     Decompress: Bit-Werte berechnen
         /// </summary>
-        private StringBuilder _helper;
+        private readonly StringBuilder _helper;
 
         #region Konstruktor | Create Tree
 
@@ -139,9 +144,8 @@ namespace Knuddels.Network
 
         #endregion
 
-        #region Compress
-
-        /* Values berechnen um es wie Knuddels zu Handeln, hatte ich aber bisher keine Lust den UNterschied zu testen
+        /* Values berechnen um es wie Knuddels zu Handeln (benötigt viele änderungen am Code), hatte ich aber bisher keine 
+         * Lust den Unterschied zu testen, aber da beides auf der Dictionary basiert sollte da kein großartiger Unterschied entstehen
             Index:  
                     Decompress:
                         Convert.ToInt32(_helper.Substring(0, _helper.Length - 1).ToString(), 2)
@@ -156,6 +160,8 @@ namespace Knuddels.Network
            
             Path:   CalcPath(index, length)
         */
+        
+        #region Compress
 
         /// <summary>
         /// Komprimiert einen Text in ein Byte Array. (Huddels-Huffman)
