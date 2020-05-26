@@ -8,7 +8,7 @@ namespace Knuddels.Network
 {
     /*
      * Issues:
-     *     Bei manchen Packeten stimmt die länge der Komprimierten bytes nicht mit dem Applet überein,
+     *     Bei manchen Paketen stimmt die länge der Komprimierten bytes nicht mit dem Applet überein,
      *         Beispiel:
      *             Das 1871 gegründete Deutsche Reich entwickelte sich rasch vom Agrar- zum Industriestaat. 
      *                 Aplet:  53 Bytes
@@ -21,13 +21,13 @@ namespace Knuddels.Network
 
     /// <summary>
     /// Knuddels Huffman Komprimierung
-    /// wird benötigt um Packete an Knuddels zu senden und zu lesen.
+    /// wird benötigt um Pakete an Knuddels zu senden und zu lesen.
     /// </summary>
     public class Huffman
     {
         /// <summary>
         /// Hier wird der berechnete Tree in einer Dictionary zur einfachen Verwendung gespeichert.
-        /// Braucht mehr Ressourcen (im .NET Fiddle benchmark bei 1000 Kompressionen über 1 GB was ich lokal nicht reproduzieren kann) 
+        /// Braucht mehr Ressourcen (im .NET Fiddle benchmark bei 1000 Kompressionen über 1 GB-Ram was ich lokal nicht reproduzieren kann) 
         /// aufgrund der suche in Dictionary (normal für Dictionarys im Vergleich zu Arrays) dafür ist der Code übersichtlicher, verständlicher und 
         /// macht bisher keine Probleme bei einer realen Verbindung zu Knuddels. 
         /// </summary>
