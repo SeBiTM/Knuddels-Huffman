@@ -6,19 +6,22 @@ using System.Text;
 
 namespace Knuddels.Network
 {
+    /*
+     * Issues:
+     *     Bei manchen Packeten stimmt die länge der Komprimierten bytes nicht mit dem Applet überein,
+     *         Beispiel:
+     *             Das 1871 gegründete Deutsche Reich entwickelte sich rasch vom Agrar- zum Industriestaat. 
+     *                 Aplet:  53 Bytes
+     *                 C#:     54 bytes
+     *     ich habe bisher keine Ahnung woran das liegt (funktioniet aber trotzdem),
+     *     aber dafür ist das alles selbst geschrieben und nicht einfach 1:1 von KrT (KoRn) kopiert und 
+     *     ohne Quellenangabe veröffentlicht.
+     *     
+     */
+
     /// <summary>
     /// Knuddels Huffman Komprimierung
     /// wird benötigt um Packete an Knuddels zu senden und zu lesen.
-    /// 
-    /// Issues:
-    ///     Bei manchen Packeten stimmt die länge der Komprimierten bytes nicht mit dem Applet überein,
-    ///     Beispiel:
-    ///         Das 1871 gegründete Deutsche Reich entwickelte sich rasch vom Agrar- zum Industriestaat. 
-    ///             Aplet:  53 Bytes
-    ///             C#:     54 bytes
-    ///     ich habe bisher keine Ahnung woran das liegt (funktioniet aber trotzdem),
-    ///     aber dafür ist das alles selbst geschrieben und nicht einfach 1:1 von KrT (KoRn) kopiert und 
-    ///     ohne Quellenangabe veröffentlicht.
     /// </summary>
     public class Huffman
     {
@@ -151,22 +154,23 @@ namespace Knuddels.Network
         #endregion
 
         /* Values berechnen um es wie Knuddels zu Handeln (benötigt viele änderungen am Code), hatte ich aber bisher keine 
-         * Lust den Unterschied zu testen, aber da beides auf der Dictionary basiert sollte da kein großartiger Unterschied entstehen
-            Index:  
-                    Decompress:
-                        Convert.ToInt32(_helper.Substring(0, _helper.Length - 1).ToString(), 2)
-                    Compress:
-                        Convert.ToInt32(pair.Key.Substring(0, pair.Key.Length - 1), 2)
+         * Lust den Unterschied zu testen, aber da beides auf der Dictionary basiert sollte da kein großartiger Unterschied 
+         * entstehen.
+         *  Index:  
+         *          Decompress:
+         *              Convert.ToInt32(_helper.Substring(0, _helper.Length - 1).ToString(), 2)
+         *          Compress:
+         *              Convert.ToInt32(pair.Key.Substring(0, pair.Key.Length - 1), 2)
+         * 
+         *  Length: 
+         *          Decompress:
+         *              _helper.Length - 1  | -1 weil 1 beim erstellen des Trees als offset hinzugefügt wird
+         *          Compress:
+         *              pair.Key.Length - 1 | -1 weil 1 beim erstellen des Trees als offset hinzugefügt wird
+         * 
+         *  Path:   CalcPath(index, length)
+         */
 
-            Length: 
-                    Decompress:
-                        _helper.Length - 1  | -1 weil 1 beim erstellen des Trees als offset hinzugefügt wird
-                    Compress:
-                        pair.Key.Length - 1 | -1 weil 1 beim erstellen des Trees als offset hinzugefügt wird
-           
-            Path:   CalcPath(index, length)
-        */
-        
         #region Compress
 
         /// <summary>
