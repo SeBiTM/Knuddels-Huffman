@@ -12,7 +12,7 @@ namespace Knuddels.Network
     /// 
     /// Issues:
     ///     Bei manchen Packeten stimmt die länge der Komprimierten bytes nicht mit dem Applet überein,
-    ///     ich habe bisher keine Ahnung woran das liegt, aber dafür ist das alles selbst geschrieben und nicht einfach 1:1 von KrT (KoRn) kopiert und ohne Quellenangabe veröffentlicht.
+    ///     ich habe bisher keine Ahnung woran das liegt (funktioniet aber trotzdem), aber dafür ist das alles selbst geschrieben und nicht einfach 1:1 von KrT (KoRn) kopiert und ohne Quellenangabe veröffentlicht.
     /// </summary>
     public class Huffman
     {
