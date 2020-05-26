@@ -8,7 +8,7 @@ namespace Knuddels.Network
     public class Huffman
     {
         private readonly Dictionary<string, string> _tree;
-        private readonly string _16BitCharIndicator;
+        private string _16BitCharIndicator;
         private StringBuilder _helper;
 
         #region Konstruktor | Create Tree
@@ -60,18 +60,17 @@ namespace Knuddels.Network
                         pathIndex <<= 1; // "pathIndex" um 1 nach links verschieben
                 }
 
-                int path = this.CalcPath(pathIndex, pathLength); // "path" berechnen (wird für den Key Wert gebraucht)
+                int path = CalcPath(pathIndex, pathLength); // "path" berechnen (wird für den Key Wert gebraucht)
                 string value = pTree.Substring(index + 1, valueLength); // String Wert für "bitBuffer" (Key) aus dem Tree entnehmen
 
-                var length = pathLength; // ausgelesene Path Länge zwischenspeichern um den "bitBuffer" dmait zu berechnen
                 this._helper.Clear(); // buffer leeren um ihn erneut als "bitBuffer" zu verwenden
-                do 
+                do
                 { // arbeite so lange wie...
                     this._helper.Append(path & 1); // "bitWert" mithilfe des "path" berechnen
 
                     path >>= 1; // "path" um eine Position nach rechts verschieben
-                    length--; // länge um 1 subtrahieren
-                } while (length != 0); // ..."length" (Länge) nicht 0 ist. 
+                    pathLength--; // länge um 1 subtrahieren
+                } while (pathLength != 0); // ..."length" (Länge) nicht 0 ist. 
 
                 if (value == "\\\\\\") // 16 bit char indikator "\\\" (ist von Knuddels so vorgegeben)
                 {
@@ -80,7 +79,7 @@ namespace Knuddels.Network
                 this._helper.Append("1"); // Bit Ende hinzufügen
 
                 if (_tree.ContainsKey(this._helper.ToString())) // sollte der Tree bereits diesen Key enthalten Error werfen (Tree fehlerhaft)
-                    throw new Exception(string.Format("Error constructing tree (Value: {0}, Path: {1}, PathLength: {2])", value, path, pathLength));
+                    throw new Exception(string.Format("Error constructing tree (Value: {0}, Path: {1}, PathLength: {2})", value, path, pathLength));
 
                 _tree.Add(this._helper.ToString(), value); // errechneten Werte zum Tree hinzufügen
             }
@@ -112,44 +111,61 @@ namespace Knuddels.Network
 
             lock (this._helper) // den hilf buffer blockieren das keine anderen daten hinzugefügt werden können
             {
-                this._helper.Clear(); // "charBuffer" leeren um ihn erneut zu verwenden 
+                this._helper.Clear(); // temp buffer leeren um ihn als "charBuffer" zu verwenden
+
                 var bitBuffer = new StringBuilder(); // erstellen eines StringBuilders worin die bit segmente gespeichert werden
-     
+
                 for (var index = 0; index < pString.Length; ++index) //alle zeichen von "pString" durchgehen
                 {
-                    this._helper.Append(pString[index]); // zeichen zum temp bufer hinzufügen
+                    this._helper.Append(pString[index]); // zeichen zum "charBuffer" bufer hinzufügen
                     if (_tree.ContainsValue(this._helper.ToString())) //prüfen ob die zeichenkette im tree existiert
                     {
-                        foreach (var pair in _tree) // alle werte im tree durchgehen
+                        foreach (var charPair in _tree) // alle werte im tree durchgehen
                         {
-                            if (pair.Value != this._helper.ToString())  //wenn die temp zeichenkette nicht im tree enthalten ist
-                                continue;                               // weiter suchen
+                            if (charPair.Value != this._helper.ToString())    // wenn die temp zeichenkette nicht im tree enthalten ist
+                                continue;                                     // suche weiter
 
-                            bitBuffer.Append(pair.Key.Substring(0, pair.Key.Length - 1)); // die bit werte der gefunden kette dem bitBuffer hinzufügen
-                            this._helper.Clear(); //den temp buffer zur weiter verwenung leeren
-                            break; // temp zeichen gefunden suchen beenden
+                            // Suche zusätzlich nach Zeichenketten (Beispiel: J, Ja, Jam, Jame, James)
+                            for (index += 1; index < pString.Length; ++index) // starte die suche bei der Position wo das Zeichen gefunden wurde + 1 (nächstes Zeichen)
+                            {
+                                this._helper.Append(pString[index]); // // zeichen zum "charBuffer" bufer hinzufügen
+
+                                if (!_tree.ContainsValue(this._helper.ToString()))
+                                { // zeichenkette existiert nicht
+                                    this._helper.Remove(_helper.Length - 1, 1); // lösche zuletzt hinzugefügtes Zeichen
+                                    index--; // gehe eine Position im Eingabe Stream (pString) zurück
+                                    break; // Zeichenketten suche untergrechen da sie offenbar nicht existiert
+                                }
+                            }
+
+                            foreach (var pair in _tree) // gehe alle Werte im Tree durch
+                            {
+                                if (pair.Value == _helper.ToString()) // Wenn die Zeichenkette im Tree gefunden wird 
+                                {
+                                    bitBuffer.Append(pair.Key.Substring(0, pair.Key.Length - 1)); // die bit werte der gefunden kette dem bitBuffer hinzufügen
+                                    this._helper.Clear(); //den temp buffer zur weiter verwenung leeren
+                                    break;  // temp zeichen gefunden suchen beenden
+                                }
+                            }
+                            break; // temp zeichen kette kette gefunden suchen beenden
                         }
                     }
                     else // 16-Bit zeichen (boa ich hasse knuddels so sehr)
                     {   //zeichen welche nicht im tree sind... abfuck
-                        bitBuffer.Append(this._16BitCharIndicator); // 16-bit char indikator welche aus dem tree ausgelesen wurde tree
-                        this._helper.Clear(); // temp buffer leeren um ihn als "tempBBuffer" verwenden zu können
+                        bitBuffer.Append(this._16BitCharIndicator); // 16-bit char indikator welche aus dem tree ausgelesen wurde
+                        this._helper.Clear(); // temp buffer leeren um ihn als "charBuffer" verwenden zu können
 
                         for (int bitCounter = 0; bitCounter < 16; bitCounter++) // 16 bit durchgehen
                         {
-                            _helper.Append(((pString[index]) >> bitCounter) & 1); // bit zeichen ( 0 oder 1 berechnen)
-                
-                            if (_helper.Length == 8)
-                            { // wenn bitBuffer länge gleich 8
-                                bitBuffer.Append(this._helper); // "charBuffer" den haupt buffer hinzufügen
-                                this._helper.Clear(); // "charBuffer" leeren
-                            }
+                            this._helper.Append(((pString[index]) >> bitCounter) & 1); // bit zeichen ( 0 oder 1 berechnen)
                         }
+                        bitBuffer.Append(this._helper); // "charBuffer" den haupt buffer hinzufügen
+                        this._helper.Clear(); // "charBuffer" leeren
                     }
                 }
-
+                
                 // den bit stream in  ein byte stream umwandeln
-                var buffer = new List<byte>(); //byte buffer erstellen
+                var buffer = new List<byte>(); //  //byte buffer erstellen
 
                 var bits = new string(bitBuffer.ToString().Reverse().ToArray()); // die bitwerte umkeheren
                 for (int index = bits.Length; index > 0; index -= index < 8 ? index : 8) // 8 bit zum "index" hinzufügen wenn verfügbar andernfalls die länge der verbleibenden zeichen
@@ -162,7 +178,8 @@ namespace Knuddels.Network
                                                 2 //basis der zahl
                                             ));
                 }
-                return buffer.ToArray(); // das fertige byte array zurückgeben
+
+                return buffer.ToArray(); // "ausgabe buffer" zurückgeben
             }
         }
 
@@ -177,7 +194,7 @@ namespace Knuddels.Network
 
             lock (_helper) // den hilf buffer blockieren das keine anderen daten hinzugefügt werden können
             {
-                this._helper.Clear(); // "bitValue" leeren um ihn erneut zu verwenden 
+                this._helper.Clear(); //// "bitValue" leeren um ihn erneut zu verwenden 
                 var buffer = new StringBuilder(); // "ausgabe buffer" erstellen
 
                 var end = false; // boolean Wert definieren der angibt ob das Ende von der Eingabe ("pBuffer") erreicht wurde
@@ -199,7 +216,7 @@ namespace Knuddels.Network
                             {
                                 charValue += (GetBitValue(pBuffer, ref index, ref bitIndex, ref end) << j); //  bit Wert berechnen und um "j" stellen nach links verschieben anschließend zur "charValue" addieren
                             }
-                            buffer.Append((char) charValue); // die berechnete zahl in ein char umwandeln und zum "ausgabe buffer" hinzufügen
+                            buffer.Append((char)charValue); // die berechnete zahl in ein char umwandeln und zum "ausgabe buffer" hinzufügen
                         }
                         else
                         { // "bitValue" existiert im tree
