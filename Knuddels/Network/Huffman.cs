@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -12,9 +13,13 @@ namespace Knuddels.Network
     public class Huffman
     {
         /// <summary>
-        /// Hier wird der berechnete Tree in einer Dictionary zur einfachen und schnellen Verwendung gespeichert.
+        /// Hier wird der berechnete Tree in einer Dictionary zur einfachen Verwendung gespeichert.
+        /// Braucht mehr Ressourcen (im .NET Fiddle benchmark bei 1000 Kompressionen über 1 GB was ich lokal nicht reproduzieren kann) 
+        /// aufgrund der suche in Dictionary (normal für Dictionarys im Vergleich zu Arrays) dafür ist der Code übersichtlicher, verständlicher und 
+        /// macht bisher keine Probleme bei einer realen Verbindung zu Knuddels. 
         /// </summary>
         private readonly Dictionary<string, string> _tree;
+
         /// <summary>
         /// Gibt den Indikator für 16-Bit Zeichen an, wird im Konstruktor berechnet.
         /// wird für die Komprimierung gebraucht und vor den Zeichen 
@@ -105,8 +110,9 @@ namespace Knuddels.Network
 
                 if (_tree.ContainsKey(this._helper.ToString())) // sollte der Tree bereits diesen Key enthalten Error werfen (Tree fehlerhaft)
                     throw new Exception(string.Format("Error constructing tree (Value: {0}, Path: {1}, PathLength: {2})", value, path, pathLength));
-
+                
                 _tree.Add(this._helper.ToString(), value); // errechneten Werte zum Tree hinzufügen
+                _helper.Clear();
             }
         }
 
@@ -136,10 +142,18 @@ namespace Knuddels.Network
         #region Compress
 
         /* Values berechnen um es wie Knuddels zu Handeln, hatte ich aber bisher keine Lust den UNterschied zu testen
-            Index:  Convert.ToInt32(_helper.Substring(0, _helper.Length - 1).ToString(), 2)
-                    Convert.ToInt32(pair.Key.Substring(0, pair.Key.Length - 1), 2)
+            Index:  
+                    Decompress:
+                        Convert.ToInt32(_helper.Substring(0, _helper.Length - 1).ToString(), 2)
+                    Compress:
+                        Convert.ToInt32(pair.Key.Substring(0, pair.Key.Length - 1), 2)
 
-            Length: _helper.Length - 1  | -1 weil 1 beim erstellen des Trees als offset hinzugefügt wird
+            Length: 
+                    Decompress:
+                        _helper.Length - 1  | -1 weil 1 beim erstellen des Trees als offset hinzugefügt wird
+                    Compress:
+                        pair.Key.Length - 1 | -1 weil 1 beim erstellen des Trees als offset hinzugefügt wird
+           
             Path:   CalcPath(index, length)
         */
 
@@ -196,7 +210,7 @@ namespace Knuddels.Network
                         this._helper.Clear();
                     }
                     else // 16-Bit zeichen
-                    {   //zeichen welche nicht im tree sind (z.b Short Werte aus dem GenericProtocol oder Zeichen wie 💛
+                    {   //zeichen welche nicht im tree sind (z.b Short Werte aus dem GenericProtocol oder Zeichen wie 💛)
                         bitBuffer.Append(this._16BitCharIndicator); // 16-bit char indikator welche aus dem tree ausgelesen wurde
                         this._helper.Clear(); // temp buffer leeren um ihn als "charBuffer" verwenden zu können
 
@@ -208,14 +222,14 @@ namespace Knuddels.Network
                         this._helper.Clear(); // "charBuffer" leeren
                     }
                 }
-                
+                this._helper.Clear();
                 // den bit stream in  ein byte stream umwandeln
                 var buffer = new List<byte>(); //  //byte buffer erstellen
                 
                 var bits = new string(bitBuffer.ToString().Reverse().ToArray()); // die bitwerte umkeheren
                 for (int index = bits.Length; index > 0; index -= index < 8 ? index : 8) // 8 bit zum "index" hinzufügen wenn verfügbar andernfalls die länge der verbleibenden zeichen
                 { // alle bits rückwerts durchgehen
-                    buffer.Add((byte)Convert.ToByte( // bit segment in ein byte umwandeln(1 byte = 8 bits)
+                    buffer.Add((byte) Convert.ToInt32( // bit segment in ein byte umwandeln(1 byte = 8 bits)
                                                 bits.Substring( // bit segment aus dem bitStream entnehemen
                                                     index - 8 < 0 ? 0 : index - 8, // start index berechnen, sollte dieser kleiner als 0 sein dann 0 andernfalls werden 8 bit vom "index" abgezogen
                                                     index < 8 ? index : 8 // end index berechnen, sollte dieser kleiner als 8 (ein bit) sein werden alle verbleibenden zeichen genutzt
@@ -246,7 +260,7 @@ namespace Knuddels.Network
             {
                 this._helper.Clear(); //// "bitValue" leeren um ihn erneut zu verwenden 
                 var buffer = new StringBuilder(); // "ausgabe buffer" erstellen
-
+              
                 var end = false; // boolean Wert definieren der angibt ob das Ende von der Eingabe ("pBuffer") erreicht wurde
                 var index = 0; // int Wert deiniere der die Position in der Eingabe ("pBuffer") angibt
                 var bitIndex = 0; // int Wert definieren welcher den index der Bits in den Bytes angibt
