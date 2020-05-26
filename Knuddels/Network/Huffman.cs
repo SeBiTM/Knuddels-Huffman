@@ -12,7 +12,13 @@ namespace Knuddels.Network
     /// 
     /// Issues:
     ///     Bei manchen Packeten stimmt die länge der Komprimierten bytes nicht mit dem Applet überein,
-    ///     ich habe bisher keine Ahnung woran das liegt (funktioniet aber trotzdem), aber dafür ist das alles selbst geschrieben und nicht einfach 1:1 von KrT (KoRn) kopiert und ohne Quellenangabe veröffentlicht.
+    ///     Beispiel:
+    ///         Das 1871 gegründete Deutsche Reich entwickelte sich rasch vom Agrar- zum Industriestaat. 
+    ///             Aplet:  53 Bytes
+    ///             C#:     54 bytes
+    ///     ich habe bisher keine Ahnung woran das liegt (funktioniet aber trotzdem),
+    ///     aber dafür ist das alles selbst geschrieben und nicht einfach 1:1 von KrT (KoRn) kopiert und 
+    ///     ohne Quellenangabe veröffentlicht.
     /// </summary>
     public class Huffman
     {
