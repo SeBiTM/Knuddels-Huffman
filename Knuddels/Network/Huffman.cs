@@ -135,6 +135,14 @@ namespace Knuddels.Network
 
         #region Compress
 
+        /* Values berechnen um es wie Knuddels zu Handeln, hatte ich aber bisher keine Lust den UNterschied zu testen
+            Index:  Convert.ToInt32(_helper.Substring(0, _helper.Length - 1).ToString(), 2)
+                    Convert.ToInt32(pair.Key.Substring(0, pair.Key.Length - 1), 2)
+
+            Length: _helper.Length - 1  | -1 weil 1 beim erstellen des Trees als offset hinzugefügt wird
+            Path:   CalcPath(index, length)
+        */
+
         /// <summary>
         /// Komprimiert einen Text in ein Byte Array. (Huddels-Huffman)
         /// </summary>
@@ -158,33 +166,34 @@ namespace Knuddels.Network
                     {
                         foreach (var charPair in _tree) // alle werte im tree durchgehen
                         {
-                            if (charPair.Value != this._helper.ToString())    // wenn die temp zeichenkette nicht im tree enthalten ist
-                                continue;                                     // suche weiter
-
-                            // Suche zusätzlich nach Zeichenketten (Beispiel: J, Ja, Jam, Jame, James)
-                            for (index += 1; index < pString.Length; ++index) // starte die suche bei der Position wo das Zeichen gefunden wurde + 1 (nächstes Zeichen)
+                            if (charPair.Value == this._helper.ToString())    // wenn die temp zeichenkette nicht im tree enthalten ist
                             {
-                                this._helper.Append(pString[index]); // // zeichen zum "charBuffer" bufer hinzufügen
-
-                                if (!_tree.ContainsValue(this._helper.ToString()))
-                                { // zeichenkette existiert nicht
-                                    this._helper.Remove(_helper.Length - 1, 1); // lösche zuletzt hinzugefügtes Zeichen
-                                    index--; // gehe eine Position im Eingabe Stream (pString) zurück
-                                    break; // Zeichenketten suche untergrechen da sie offenbar nicht existiert
-                                }
-                            }
-
-                            foreach (var pair in _tree) // gehe alle Werte im Tree durch
-                            {
-                                if (pair.Value == _helper.ToString()) // Wenn die Zeichenkette im Tree gefunden wird 
+                                // Suche zusätzlich nach Zeichenketten (Beispiel: J, Ja, Jam, Jame, James)
+                                for (index += 1; index < pString.Length; ++index) // starte die suche bei der Position wo das Zeichen gefunden wurde + 1 (nächstes Zeichen)
                                 {
-                                    bitBuffer.Append(pair.Key.Substring(0, pair.Key.Length - 1)); // die bit werte der gefunden kette dem bitBuffer hinzufügen
-                                    this._helper.Clear(); //den temp buffer zur weiter verwenung leeren
-                                    break;  // temp zeichen gefunden suchen beenden
+                                    this._helper.Append(pString[index]); // // zeichen zum "charBuffer" bufer hinzufügen
+
+                                    if (!_tree.ContainsValue(this._helper.ToString()))
+                                    { // zeichenkette existiert nicht
+                                        this._helper.Remove(_helper.Length - 1, 1); // lösche zuletzt hinzugefügtes Zeichen
+                                        index--; // gehe eine Position im Eingabe Stream (pString) zurück
+                                        break; // Zeichenketten suche untergrechen da sie offenbar nicht existiert
+                                    }
                                 }
+
+                                foreach (var pair in _tree) // gehe alle Werte im Tree durch
+                                {
+                                    if (pair.Value == _helper.ToString()) // Wenn die Zeichenkette im Tree gefunden wird 
+                                    {
+                                        bitBuffer.Append(pair.Key.Substring(0, pair.Key.Length - 1)); // die bit werte der gefunden kette dem bitBuffer hinzufügen
+                                        this._helper.Clear(); //den temp buffer zur weiter verwenung leeren
+                                        break;  // temp zeichen gefunden suchen beenden
+                                    }
+                                }
+                                break; // temp zeichen kette kette gefunden suchen beenden
                             }
-                            break; // temp zeichen kette kette gefunden suchen beenden
                         }
+                        this._helper.Clear();
                     }
                     else // 16-Bit zeichen
                     {   //zeichen welche nicht im tree sind (z.b Short Werte aus dem GenericProtocol oder Zeichen wie 💛
@@ -202,11 +211,11 @@ namespace Knuddels.Network
                 
                 // den bit stream in  ein byte stream umwandeln
                 var buffer = new List<byte>(); //  //byte buffer erstellen
-
+                
                 var bits = new string(bitBuffer.ToString().Reverse().ToArray()); // die bitwerte umkeheren
                 for (int index = bits.Length; index > 0; index -= index < 8 ? index : 8) // 8 bit zum "index" hinzufügen wenn verfügbar andernfalls die länge der verbleibenden zeichen
                 { // alle bits rückwerts durchgehen
-                    buffer.Add((byte)Convert.ToInt32( // bit segment in ein byte umwandeln(1 byte = 8 bits)
+                    buffer.Add((byte)Convert.ToByte( // bit segment in ein byte umwandeln(1 byte = 8 bits)
                                                 bits.Substring( // bit segment aus dem bitStream entnehemen
                                                     index - 8 < 0 ? 0 : index - 8, // start index berechnen, sollte dieser kleiner als 0 sein dann 0 andernfalls werden 8 bit vom "index" abgezogen
                                                     index < 8 ? index : 8 // end index berechnen, sollte dieser kleiner als 8 (ein bit) sein werden alle verbleibenden zeichen genutzt
@@ -214,6 +223,7 @@ namespace Knuddels.Network
                                                 2 //basis der zahl
                                             ));
                 }
+                bitBuffer.Clear();
                 return buffer.ToArray(); // "ausgabe buffer" zurückgeben
             }
         }
