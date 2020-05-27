@@ -8,13 +8,22 @@ namespace Knuddels.Network
 {
     /*
      * Issues:
-     *     Bei manchen Paketen stimmt die länge der Komprimierten bytes nicht mit dem Applet überein,
-     *         Beispiel:
-     *             Das 1871 gegründete Deutsche Reich entwickelte sich rasch vom Agrar- zum Industriestaat. 
-     *                 Aplet:  53 Bytes
-     *                 C#:     54 bytes
-     *     ich habe bisher keine Ahnung woran das liegt (funktioniet aber trotzdem),
-     *     aber dafür ist das alles selbst geschrieben und nicht einfach 1:1 von KrT (KoRn) kopiert und 
+     *     Geschwindigkeit muss noch optimiert werden (das Suchen in der _tree Dictionary sollte dafür verantworlich sein
+     *     
+     *     Also doch noch ne Möglichkeit suchen den Key anders zu bestimmen,
+     *     gefällt mir aktuell eh noch nicht so ganz, aber für einzelne Verbindungen tut es das auf jeden Fall erstmal,
+     *     für Server Anwendungen ( sollten aktuell aber doch lieber die "Original Files" genutzt werden,
+     *     aber ich werde auch nicht aufhören bis es mir passt.
+     *     
+     *     Beispiel:
+                Bytes: 54
+                Das 1871 gegründete Deutsche Reich entwickelte sich rasch vom Agrar- zum Industriestaat. 
+                Elapsed (C#): 20 ms.
+                Bytes: 54
+                Das 1871 gegründete Deutsche Reich entwickelte sich rasch vom Agrar- zum Industriestaat. 
+                Elapsed (Applet): 3 ms.
+     *     
+     *     aber dafür ist das alles selbst geschrieben und nicht einfach 1:1 von KoRn aka KrT kopiert und 
      *     ohne Quellenangabe veröffentlicht.
      *     
      */
@@ -66,7 +75,7 @@ namespace Knuddels.Network
             this._tree = new Dictionary<string, string>(); // erstellen einer neuen Key, Value Liste für eine einfache verwendung der Tree Werte
             this._helper = new StringBuilder(); // _helper" definieren um ihnals "bitBuffer" zu verwenden (Key)
 
-            var pathIndex = 1; // "pathIndex" definieren, gibt den Weg im Tree an
+            var pathIndex = 1; // "pathIndex" definieren, gibt den anganh des Weg´s im Tree an
             var treeDepth = -33; // "treeDepth" definieren, gibt die Tiefe im Tree an
             int valueLength; // "valueLength" definieren, gibt die Länge des String Werts an (Value)
             for (var index = 0; index < pTree.Length; index += valueLength + 1) // gehe jedes zeichen im Tree ("pTree") durch und addiere errechnete "valueLength" + 1 zum index um zum nächsten Key/Value Part zu gelangen
@@ -202,6 +211,18 @@ namespace Knuddels.Network
                                 for (index += 1; index < pString.Length; ++index) // starte die suche bei der Position wo das Zeichen gefunden wurde + 1 (nächstes Zeichen)
                                 {
                                     this._helper.Append(pString[index]); // // zeichen zum "charBuffer" bufer hinzufügen
+
+                                    // Feheler sollte sich irgendwo hier befinden
+                                    if (!_tree.ContainsValue(this._helper.ToString()) && (index + 1 < pString.Length))
+                                    {
+                                        index++;
+                                        this._helper.Append(pString[index]);
+                                        if (!_tree.ContainsValue(this._helper.ToString()))
+                                        { // zeichenkette existiert nicht
+                                            this._helper.Remove(_helper.Length - 1, 1); // lösche zuletzt hinzugefügtes Zeichen
+                                            index--; // gehe eine Position im Eingabe Stream (pString) zurück
+                                        }
+                                    }
 
                                     if (!_tree.ContainsValue(this._helper.ToString()))
                                     { // zeichenkette existiert nicht
