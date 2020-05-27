@@ -6,9 +6,15 @@ using System.Text;
 
 namespace Knuddels.Network
 {
-    /*
+    /* Kommt nicht mal ansatzweiße an die Klasse von damals ran aber ich setz mich jetzt erstmal an den Shit wofür ich bezahlt werde
      * Issues:
-     *     Geschwindigkeit muss noch optimiert werden (das Suchen in der _tree Dictionary sollte dafür verantworlich sein
+     *     Compressed Length stimmt nicht
+     *          Es wird nicht das richtige KeyValue Pair gefunden
+     *       
+     *       
+     *     
+     *     Geschwindigkeit muss noch optimiert werden (das Suchen in der _tree Dictionary sollte dafür verantworlich sein,
+     *     aber so ist das halt wenn man mit Strings als Key arbeitet
      *     
      *     Also doch noch ne Möglichkeit suchen den Key anders zu bestimmen,
      *     gefällt mir aktuell eh noch nicht so ganz, aber für einzelne Verbindungen tut es das auf jeden Fall erstmal,
@@ -23,8 +29,6 @@ namespace Knuddels.Network
                 Das 1871 gegründete Deutsche Reich entwickelte sich rasch vom Agrar- zum Industriestaat. 
                 Elapsed (Applet): 3 ms.
      *     
-     *     aber dafür ist das alles selbst geschrieben und nicht einfach 1:1 von KoRn aka KrT kopiert und 
-     *     ohne Quellenangabe veröffentlicht.
      *     
      */
 
@@ -119,7 +123,7 @@ namespace Knuddels.Network
                 this._helper.Clear(); // buffer leeren um ihn erneut als "bitBuffer" zu verwenden
                 do
                 { // arbeite so lange wie...
-                    this._helper.Append(path & 1); // "bitWert" mithilfe des "path" berechnen
+                    this._helper.Append(path & 1); // "bitWert" mithilfe des "path" berechnen (0 oder 1)
 
                     path >>= 1; // "path" um eine Position nach rechts verschieben
                     pathLength--; // länge um 1 subtrahieren
@@ -131,11 +135,12 @@ namespace Knuddels.Network
                 }
                 this._helper.Append("1"); // Bit Ende hinzufügen
 
-                if (_tree.ContainsKey(this._helper.ToString())) // sollte der Tree bereits diesen Key enthalten Error werfen (Tree fehlerhaft)
-                    throw new Exception(string.Format("Error constructing tree (Value: {0}, Path: {1}, PathLength: {2})", value, path, pathLength));
-                
-                _tree.Add(this._helper.ToString(), value); // errechneten Werte zum Tree hinzufügen
-                _helper.Clear();
+                if (this._tree.ContainsKey(this._helper.ToString())) // sollte der Tree bereits diesen Key enthalten Error werfen (Tree fehlerhaft)
+                    throw new Exception(string.Format("Error constructing tree (Key: {0}, Value: {1}, Path: {2}, PathLength: {3})", this._helper.ToString(), value, path, pathLength));
+
+                Debug.WriteLine(_helper + " - " + value.Replace("\0", "\\0").Replace("\n", "\\n"));
+                this._tree.Add(this._helper.ToString(), value); // errechneten Werte zum Tree hinzufügen
+                this._helper.Clear();
             }
         }
 
@@ -205,18 +210,17 @@ namespace Knuddels.Network
                     {
                         foreach (var charPair in _tree) // alle werte im tree durchgehen
                         {
-                            if (charPair.Value == this._helper.ToString())    // wenn die temp zeichenkette nicht im tree enthalten ist
+                            if (charPair.Value == this._helper.ToString())    // wenn die temp zeichenkette im tree enthalten ist
                             {
                                 // Suche zusätzlich nach Zeichenketten (Beispiel: J, Ja, Jam, Jame, James)
                                 for (index += 1; index < pString.Length; ++index) // starte die suche bei der Position wo das Zeichen gefunden wurde + 1 (nächstes Zeichen)
                                 {
-                                    this._helper.Append(pString[index]); // // zeichen zum "charBuffer" bufer hinzufügen
+                                    this._helper.Append(pString[index]); // zeichen zum "charBuffer" bufer hinzufügen
 
-                                    // Feheler sollte sich irgendwo hier befinden
                                     if (!_tree.ContainsValue(this._helper.ToString()) && (index + 1 < pString.Length))
                                     {
-                                        index++;
-                                        this._helper.Append(pString[index]);
+                                        index++; // gehe eine Position im Eingabe Stream (pString) weiter um zum nächsten Zeichen zu gelangen
+                                        this._helper.Append(pString[index]); // zeichen zum "charBuffer" bufer hinzufügen
                                         if (!_tree.ContainsValue(this._helper.ToString()))
                                         { // zeichenkette existiert nicht
                                             this._helper.Remove(_helper.Length - 1, 1); // lösche zuletzt hinzugefügtes Zeichen
@@ -266,18 +270,53 @@ namespace Knuddels.Network
                 var bits = new string(bitBuffer.ToString().Reverse().ToArray()); // die bitwerte umkeheren
                 for (int index = bits.Length; index > 0; index -= index < 8 ? index : 8) // 8 bit zum "index" hinzufügen wenn verfügbar andernfalls die länge der verbleibenden zeichen
                 { // alle bits rückwerts durchgehen
-                    buffer.Add((byte) Convert.ToInt32( // bit segment in ein byte umwandeln(1 byte = 8 bits)
-                                                bits.Substring( // bit segment aus dem bitStream entnehemen
-                                                    index - 8 < 0 ? 0 : index - 8, // start index berechnen, sollte dieser kleiner als 0 sein dann 0 andernfalls werden 8 bit vom "index" abgezogen
-                                                    index < 8 ? index : 8 // end index berechnen, sollte dieser kleiner als 8 (ein bit) sein werden alle verbleibenden zeichen genutzt
-                                                ),
-                                                2 //basis der zahl
-                                            ));
+                    buffer.Add(Convert.ToByte( // bit segment in ein byte umwandeln(1 byte = 8 bits)
+                                        bits.Substring( // bit segment aus dem bitStream entnehemen
+                                            index - 8 < 0 ? 0 : index - 8, // start index berechnen, sollte dieser kleiner als 0 sein dann 0 andernfalls werden 8 bit vom "index" abgezogen
+                                            index < 8 ? index : 8 // end index berechnen, sollte dieser kleiner als 8 (ein bit) sein werden alle verbleibenden zeichen genutzt
+                                        ),
+                                        2 //basis der zahl
+                                    ));
                 }
                 bitBuffer.Clear();
                 return buffer.ToArray(); // "ausgabe buffer" zurückgeben
             }
         }
+
+        private string FindKey(string pValue, ref int pIndex, out bool end)
+        {
+            for (var index = pIndex; pIndex < pValue.Length; ++pIndex)
+            {
+                _helper.Append(pValue[pIndex++]);
+                do
+                {
+                    if (pIndex >= pValue.Length) break;
+
+                    _helper.Append(pValue[pIndex++]);
+                } while (!_tree.ContainsValue(_helper.ToString()));
+
+                do //Search for Full Words
+                {
+                    if (pIndex >= pValue.Length) break;
+
+                    _helper.Append(pValue[pIndex++]);
+                } while (!_tree.ContainsValue(_helper.ToString()));
+
+                if (!_tree.ContainsValue(_helper.ToString()))
+                {
+                    pIndex = index;
+                    _helper.Clear().Append(pValue[pIndex++]);
+                }
+
+                end = pIndex == pValue.Length;
+                foreach (var pair in _tree)
+                    if (pair.Value == _helper.ToString())
+                        return pair.Key;
+            }
+            end = pIndex >= pValue.Length;
+            return null;
+        }
+
 
         #endregion
 
