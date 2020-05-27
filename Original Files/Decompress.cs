@@ -1,4 +1,7 @@
-﻿using System.Text;
+﻿/* Stammt noch von damals aus dem KDF woran ich ja auch mitgearbeitet habe
+ * @author 3lit
+ */
+using System.Text;
 
 namespace KDF.Networks.Protocol
 {

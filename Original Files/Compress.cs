@@ -1,4 +1,7 @@
-﻿using System;
+﻿/* Stammt noch von damals aus dem KDF woran ich ja auch mitgearbeitet habe
+ * @author 3lit
+ */
+using System;
 using System.Collections;
 
 namespace KDF.Networks.Protocol
